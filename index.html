@@ -292,6 +292,52 @@
     font-size:13px; font-weight:700; font-family:var(--font); cursor:pointer; transition:background .2s; }
   .mob-open-btn:active { background:#e0f2fe; }
 
+  /* ── VENTA MOB ADICIONAL (Pagado, perfil 1) ── */
+  .mob-adicional-section {
+    margin-top:16px; padding:14px 16px; background:#f0fdf4;
+    border:1.5px solid #22c55e; border-radius:12px;
+  }
+  .mob-adicional-title {
+    font-size:12px; font-weight:700; color:#14532d;
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;
+  }
+  .mob-adicional-pago-sep { height:1px; background:#86efac; margin:14px 0 12px; }
+  .mob-adicional-pago-title { font-size:12px; font-weight:700; color:#14532d; text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
+  .mob-adicional-row { display:flex; gap:8px; margin-bottom:10px; }
+  .mob-adicional-group { flex:1; display:flex; flex-direction:column; gap:4px; }
+  .mob-adicional-label { font-size:11px; font-weight:600; color:#14532d; text-transform:uppercase; letter-spacing:.4px; }
+  .mob-adicional-input, .mob-adicional-select {
+    width:100%; padding:9px 12px; border:2px solid #86efac; border-radius:8px;
+    font-size:14px; font-family:var(--font); color:#1e293b; outline:none;
+    background:white; transition:border-color .2s; appearance:none; -webkit-appearance:none;
+  }
+  .mob-adicional-input:focus, .mob-adicional-select:focus { border-color:#22c55e; }
+  .mob-adicional-select-wrap { position:relative; }
+  .mob-adicional-select-wrap::after { content:'▾'; position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#22c55e; pointer-events:none; }
+  .mob-adicional-open-btn {
+    width:100%; padding:9px; background:#f0fdf4;
+    color:#15803d; border:1.5px solid #86efac; border-radius:8px;
+    font-size:13px; font-weight:700; font-family:var(--font); cursor:pointer; transition:background .2s;
+  }
+  .mob-adicional-open-btn:active { background:#dcfce7; }
+  .mob-adicional-summary { margin-top:8px; padding:8px 12px; background:#dcfce7;
+    border:1.5px solid #86efac; border-radius:8px; display:none; }
+  .mob-adicional-summary.visible { display:block; }
+  .mob-adicional-summary-label { font-size:11px; font-weight:700; color:#14532d;
+    text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+  .mob-adicional-summary-text { font-size:13px; font-weight:600; color:#14532d; line-height:1.5; }
+  .mob-adicional-total { font-size:15px; font-weight:700; color:#15803d; margin-top:6px; }
+  .mob-adicional-btn {
+    width:100%; padding:10px; background:#15803d; color:white;
+    border:none; border-radius:8px; font-size:14px; font-weight:700;
+    font-family:var(--font); cursor:pointer; transition:background .2s; margin-top:4px;
+  }
+  .mob-adicional-btn:active { background:#166534; }
+  .mob-adicional-btn:disabled { background:#86efac; cursor:not-allowed; }
+  .mob-adicional-msg { font-size:13px; font-weight:600; text-align:center; margin-top:8px; min-height:16px; }
+  .mob-adicional-msg.ok  { color:#15803d; }
+  .mob-adicional-msg.err { color:#b91c1c; }
+
   /* ── MODAL: desktop fix ── */
   @media (min-width: 640px) {
     .modal-overlay { align-items:center; }
@@ -467,9 +513,9 @@
 
 <div class="floor" id="floor-pa">
   <div class="map-scroll"><div class="map-inner">
-    <svg class="map-bg" width="1900" height="1620" xmlns="http://www.w3.org/2000/svg">
+    <svg class="map-bg" width="1900" height="1590" xmlns="http://www.w3.org/2000/svg">
       <defs><style>.bg-label{font-family:'DM Sans',sans-serif;font-weight:700;}</style></defs>
-      <rect x="0" y="0" width="1900" height="1620" fill="#666666" rx="6"/>
+      <rect x="0" y="0" width="1900" height="1590" fill="#666666" rx="6"/>
       <rect x="100" y="0" width="135" height="300" fill="#bfdbfe" rx="6"/>
       <text class="bg-label" x="110" y="800" text-anchor="middle" fill="#1e3a5f" font-size="28">SEMICUBIERTO</text>
       <rect x="0" y="0" width="250" height="1350" fill="#bfdbfe" rx="4"/>
@@ -478,23 +524,23 @@
       <text class="bg-label" x="800" y="320" text-anchor="middle" fill="#1e3a5f" font-size="28">GALERIA ANCHA</text>
       <text x="1400" y="320" text-anchor="middle" fill="#1e3a5f" font-size="60">⇔</text>
       <text x="310"  y="320" text-anchor="middle" fill="#1e3a5f" font-size="60">⇔</text>
-      <rect x="250" y="1130" width="730" height="490" fill="#c4b5fd" rx="4"/>
+      <rect x="250" y="1130" width="730" height="460" fill="#c4b5fd" rx="4"/>
       <text class="bg-label" x="650" y="1350" text-anchor="middle" fill="#3b0764" font-size="30">PRIMER NIVEL</text>
       <text class="bg-label" x="650" y="1400" text-anchor="middle" fill="#3b0764" font-size="30">COMEDOR</text>
-      <text x="930" y="1390" text-anchor="middle" fill="#3b0764" font-size="60">⇔</text>
-      <text x="930" y="1590" text-anchor="middle" fill="#3b0764" font-size="60">⇔</text>
-      <text x="320" y="1420" text-anchor="middle" fill="#3b0764" font-size="60">⇔</text>
-      <rect x="980" y="1130" width="650" height="490" fill="#9478eb" rx="4"/>
-      <text class="bg-label" x="1300" y="1350" text-anchor="middle" fill="#3b0764" font-size="30">SEGUNDO NIVEL</text>
-      <text class="bg-label" x="1300" y="1400" text-anchor="middle" fill="#3b0764" font-size="30">COMEDOR</text>
+      <text x="930" y="1330" text-anchor="middle" fill="#3b0764" font-size="60">⇔</text>
+      <text x="930" y="1540" text-anchor="middle" fill="#3b0764" font-size="60">⇔</text>
+      <text x="320" y="1360" text-anchor="middle" fill="#3b0764" font-size="60">⇔</text>
+      <rect x="980" y="1130" width="700" height="460" fill="#9478eb" rx="4"/>
+      <text class="bg-label" x="1330" y="1520" text-anchor="middle" fill="#3b0764" font-size="30">SEGUNDO NIVEL</text>
+      <text class="bg-label" x="1330" y="1570" text-anchor="middle" fill="#3b0764" font-size="30">COMEDOR</text>
       <rect x="1450" y="0" width="460" height="350" fill="#a78bfa" rx="4"/>
-      <text class="bg-label" x="1600" y="250" text-anchor="middle" fill="#3b0764" font-size="28">PATIO</text>
-      <text class="bg-label" x="1600" y="290" text-anchor="middle" fill="#3b0764" font-size="28">DESCUBIERTO</text>
+      <text class="bg-label" x="1600" y="290" text-anchor="middle" fill="#3b0764" font-size="28">PATIO</text>
+      <text class="bg-label" x="1600" y="330" text-anchor="middle" fill="#3b0764" font-size="28">DESCUBIERTO</text>
       <rect x="0" y="0" width="250" height="170" fill="#cbd5e1" rx="4"/>
       <text class="bg-label" x="120" y="60"  text-anchor="middle" fill="#475569" font-size="18">ACCESO</text>
       <text class="bg-label" x="120" y="80"  text-anchor="middle" fill="#475569" font-size="18">PTA. BAJA</text>
       <text class="bg-label" x="120" y="100" text-anchor="middle" fill="#475569" font-size="16">(escalera)</text>
-      <rect x="0" y="1350" width="250" height="270" fill="#cbd5e1" rx="4"/>
+      <rect x="0" y="1350" width="250" height="240" fill="#cbd5e1" rx="4"/>
       <text class="bg-label" x="120" y="1450" text-anchor="middle" fill="#475569" font-size="18">ACCESO</text>
       <text class="bg-label" x="120" y="1480" text-anchor="middle" fill="#475569" font-size="18">PTA. BAJA</text>
       <text class="bg-label" x="120" y="1510" text-anchor="middle" fill="#475569" font-size="16">(escalera)</text>
@@ -615,6 +661,36 @@
       <div class="mob-readonly-items" id="mobReadonlyItems"></div>
     </div>
 
+    <!-- VENTA MOB ADICIONAL (solo stands Pagados, perfil 1) -->
+    <div class="mob-adicional-section" id="mobAdicionalSection" style="display:none">
+      <div class="mob-adicional-title">🪑➕ Vender Mobiliario Adicional</div>
+      <button class="mob-adicional-open-btn" onclick="openMobAdicionalPanel()">🪑 Seleccionar mobiliario <span id="mobAdicionalBtnLabel"></span></button>
+      <div class="mob-adicional-summary" id="mobAdicionalSummary">
+        <div class="mob-adicional-summary-label">Mobiliario seleccionado</div>
+        <div class="mob-adicional-summary-text" id="mobAdicionalSummaryText"></div>
+        <div class="mob-adicional-total" id="mobAdicionalTotal"></div>
+      </div>
+      <div class="mob-adicional-pago-sep"></div>
+      <div class="mob-adicional-pago-title">💳 Pago (monto exacto obligatorio)</div>
+      <div class="mob-adicional-row">
+        <div class="mob-adicional-group">
+          <label class="mob-adicional-label">Monto ($)</label>
+          <input type="number" class="mob-adicional-input" id="mobAdicionalMonto"
+            placeholder="0" min="1" oninput="checkMobAdicionalBtn()">
+        </div>
+        <div class="mob-adicional-group">
+          <label class="mob-adicional-label">Medio de pago</label>
+          <div class="mob-adicional-select-wrap">
+            <select class="mob-adicional-select" id="mobAdicionalMedio" onchange="checkMobAdicionalBtn()">
+              <option value="">Cargando...</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <button class="mob-adicional-btn" id="mobAdicionalBtn" onclick="venderMobAdicional()" disabled>Registrar venta de mobiliario</button>
+      <div class="mob-adicional-msg" id="mobAdicionalMsg"></div>
+    </div>
+
     <!-- CARGAR PAGO (solo cuando el stand está Señado) -->
     <div class="pagos-section" id="pagosSection" style="display:none">
       <div class="pagos-title">💳 Pagos</div>
@@ -658,6 +734,16 @@
       </div>
       <div class="mob-list" id="mobList"></div>
       <button class="assign-btn" style="margin-top:14px;background:#0369a1;border:none" onclick="closeMobPanel()">Confirmar selección</button>
+    </div>
+
+    <!-- Panel de selección de mob adicional -->
+    <div class="mob-panel" id="mobAdicionalPanel">
+      <div class="mob-header">
+        <button class="mob-back" onclick="closeMobAdicionalPanel()">← Volver</button>
+        <div class="mob-title">🪑➕ Mob. Adicional</div>
+      </div>
+      <div class="mob-list" id="mobAdicionalList"></div>
+      <button class="assign-btn" style="margin-top:14px;background:#15803d;border:none" onclick="closeMobAdicionalPanel()">Confirmar selección</button>
     </div>
 
     <!-- Panel de alta de nuevo feriante -->
@@ -718,7 +804,7 @@ let lastTap = 0;
 document.addEventListener('touchend', e => { const now=Date.now(); if(now-lastTap<300) e.preventDefault(); lastTap=now; }, {passive:false});
 
 // ── VERSIÓN DE LA APP ────────────────────────────────────────────────────────
-const APP_VERSION = 'v2.3';   // ← cambiá solo acá
+const APP_VERSION = 'v2.0';   // ← cambiá solo acá
 document.addEventListener('DOMContentLoaded', () => {
   const lv = document.getElementById('loginVersion');
   const hv = document.getElementById('headerVersion');
@@ -967,6 +1053,15 @@ function openModal(id) {
     renderPagos(extra);
   } else {
     pagosSection.style.display = 'none';
+  }
+
+  // Sección mob adicional: solo para Pagados y perfil 1
+  const mobAdicionalSection = document.getElementById('mobAdicionalSection');
+  if (estado === 'Pagado' && CURRENT_PERFIL === 1) {
+    mobAdicionalSection.style.display = 'block';
+    resetMobAdicionalUI();
+  } else {
+    mobAdicionalSection.style.display = 'none';
   }
 }
 
@@ -1682,6 +1777,168 @@ function renderMobReadonly(extra) {
   container.innerHTML = items
     .map(m => `<span class="mob-readonly-chip">${m.label} ×${extra[m.key]}</span>`)
     .join('');
+}
+
+// ── MOBILIARIO ADICIONAL (stands Pagados, perfil 1) ──────────────────────────
+let mobAdicionalQty = {};
+
+function resetMobAdicionalQty() {
+  mobAdicionalQty = {};
+  MOB_ITEMS.forEach(m => { mobAdicionalQty[m.key] = 0; });
+}
+
+function resetMobAdicionalUI() {
+  resetMobAdicionalQty();
+  document.getElementById('mobAdicionalSummary').classList.remove('visible');
+  document.getElementById('mobAdicionalSummaryText').textContent = '';
+  document.getElementById('mobAdicionalTotal').textContent = '';
+  document.getElementById('mobAdicionalBtnLabel').textContent = '';
+  document.getElementById('mobAdicionalMonto').value = '';
+  document.getElementById('mobAdicionalMsg').textContent = '';
+  document.getElementById('mobAdicionalMsg').className = 'mob-adicional-msg';
+  document.getElementById('mobAdicionalBtn').disabled = true;
+  cargarMediosPago().then(() => {
+    const sel = document.getElementById('mobAdicionalMedio');
+    if (MEDIOS_PAGO.length) {
+      sel.innerHTML = '<option value="">— Elegí medio —</option>' +
+        MEDIOS_PAGO.map(m => `<option value="${m}">${m}</option>`).join('');
+    } else {
+      sel.innerHTML = '<option value="">Sin medios cargados</option>';
+    }
+  });
+}
+
+function calcTotalMobAdicional() {
+  return MOB_ITEMS.reduce((sum, m) => {
+    const qty   = mobAdicionalQty[m.key] || 0;
+    const price = PRECIOS_MOB[m.label] || 0;
+    return sum + qty * price;
+  }, 0);
+}
+
+function openMobAdicionalPanel() {
+  const list = document.getElementById('mobAdicionalList');
+  list.innerHTML = MOB_ITEMS.map(m => {
+    const precio = PRECIOS_MOB[m.label];
+    const precioStr = precio ? `<span style="font-size:12px;color:#64748b;font-weight:500">$${precio.toLocaleString('es-AR')}</span>` : '';
+    return `
+    <div class="mob-item">
+      <div class="mob-item-name">${m.label} ${precioStr}</div>
+      <div class="mob-counter">
+        <button class="mob-btn minus" onclick="changeMobAdicionalQty('${m.key}',-1)">−</button>
+        <span class="mob-qty" id="maqty_${m.key}">${mobAdicionalQty[m.key]||0}</span>
+        <button class="mob-btn" onclick="changeMobAdicionalQty('${m.key}',1)">+</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('mainPanel').classList.add('hidden');
+  document.getElementById('mobAdicionalPanel').classList.add('active');
+}
+
+function closeMobAdicionalPanel() {
+  document.getElementById('mobAdicionalPanel').classList.remove('active');
+  document.getElementById('mainPanel').classList.remove('hidden');
+  updateMobAdicionalSummary();
+}
+
+function changeMobAdicionalQty(key, delta) {
+  mobAdicionalQty[key] = Math.max(0, (mobAdicionalQty[key]||0) + delta);
+  const el = document.getElementById('maqty_' + key);
+  if (el) el.textContent = mobAdicionalQty[key];
+}
+
+function updateMobAdicionalSummary() {
+  const items = MOB_ITEMS.filter(m => mobAdicionalQty[m.key] > 0);
+  const summaryEl  = document.getElementById('mobAdicionalSummary');
+  const summaryTxt = document.getElementById('mobAdicionalSummaryText');
+  const totalEl    = document.getElementById('mobAdicionalTotal');
+  const btnLabel   = document.getElementById('mobAdicionalBtnLabel');
+  if (items.length === 0) {
+    summaryEl.classList.remove('visible');
+    totalEl.textContent = '';
+    btnLabel.textContent = '';
+  } else {
+    const txt   = items.map(m => `${m.label} ×${mobAdicionalQty[m.key]}`).join(' · ');
+    const total = calcTotalMobAdicional();
+    summaryTxt.textContent = txt;
+    totalEl.textContent    = total > 0 ? `Total: $${total.toLocaleString('es-AR')}` : '';
+    summaryEl.classList.add('visible');
+    btnLabel.textContent = `(${items.length} tipo${items.length>1?'s':''})`;
+  }
+  checkMobAdicionalBtn();
+}
+
+function checkMobAdicionalBtn() {
+  const total  = calcTotalMobAdicional();
+  const monto  = Number(document.getElementById('mobAdicionalMonto').value);
+  const medio  = document.getElementById('mobAdicionalMedio').value.trim();
+  const msgEl  = document.getElementById('mobAdicionalMsg');
+  const btn    = document.getElementById('mobAdicionalBtn');
+
+  if (total === 0) {
+    msgEl.textContent = '';
+    msgEl.className = 'mob-adicional-msg';
+    btn.disabled = true;
+    return;
+  }
+  if (monto > 0 && monto !== total) {
+    msgEl.textContent = `El monto debe ser exactamente $${total.toLocaleString('es-AR')}.`;
+    msgEl.className = 'mob-adicional-msg err';
+    btn.disabled = true;
+    return;
+  }
+  msgEl.textContent = '';
+  msgEl.className = 'mob-adicional-msg';
+  btn.disabled = !(total > 0 && monto === total && medio);
+}
+
+async function venderMobAdicional() {
+  const btn    = document.getElementById('mobAdicionalBtn');
+  const msgEl  = document.getElementById('mobAdicionalMsg');
+  const monto  = Number(document.getElementById('mobAdicionalMonto').value);
+  const medio  = document.getElementById('mobAdicionalMedio').value.trim();
+  const total  = calcTotalMobAdicional();
+  const items  = MOB_ITEMS.filter(m => mobAdicionalQty[m.key] > 0);
+
+  msgEl.textContent = '';
+  msgEl.className = 'mob-adicional-msg';
+
+  if (items.length === 0) { msgEl.textContent = 'Seleccioná al menos un ítem de mobiliario.'; msgEl.className = 'mob-adicional-msg err'; return; }
+  if (!monto || monto <= 0) { msgEl.textContent = 'Ingresá un monto válido.'; msgEl.className = 'mob-adicional-msg err'; return; }
+  if (monto !== total) { msgEl.textContent = `El monto debe ser exactamente $${total.toLocaleString('es-AR')}.`; msgEl.className = 'mob-adicional-msg err'; return; }
+  if (!medio) { msgEl.textContent = 'Seleccioná un medio de pago.'; msgEl.className = 'mob-adicional-msg err'; return; }
+  if (!currentStandId) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  // Armar descripción del mob para la leyenda
+  const mobDesc = items.map(m => `${mobAdicionalQty[m.key]}×${m.label}`).join(' + ');
+
+  try {
+    const mobParams = MOB_ITEMS.map(m => `${m.key}=${mobAdicionalQty[m.key]||0}`).join('&');
+    const url = `${API_URL}?tipo=mobadic&stand=${encodeURIComponent(currentStandId)}&monto=${monto}&medio=${encodeURIComponent(medio)}&user=${encodeURIComponent(CURRENT_USER)}&mobdesc=${encodeURIComponent(mobDesc)}&${mobParams}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (data.ok) {
+      msgEl.textContent = `✅ Mobiliario adicional registrado. Actualizando...`;
+      msgEl.className = 'mob-adicional-msg ok';
+      lockModal();
+      await load();
+      document.getElementById('modalOverlay').classList.remove('open');
+      unlockModal();
+    } else {
+      msgEl.textContent = data.error || 'Error al registrar el mobiliario adicional.';
+      msgEl.className = 'mob-adicional-msg err';
+      btn.disabled = false;
+      btn.textContent = 'Registrar venta de mobiliario';
+    }
+  } catch(err) {
+    msgEl.textContent = 'Error de conexión.';
+    msgEl.className = 'mob-adicional-msg err';
+    btn.disabled = false;
+    btn.textContent = 'Registrar venta de mobiliario';
+  }
 }
 
 initLogin();
