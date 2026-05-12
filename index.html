@@ -1057,7 +1057,7 @@ function openModal(id) {
 
   // Sección mob adicional: solo para Pagados y perfil 1
   const mobAdicionalSection = document.getElementById('mobAdicionalSection');
-  if (estado === 'Pagado' && CURRENT_PERFIL === 1) {
+  if (estado === 'Pagado' && (CURRENT_PERFIL === 1 || CURRENT_PERFIL === 3)) {
     mobAdicionalSection.style.display = 'block';
     resetMobAdicionalUI();
   } else {
