@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Mapa de Stands – Feria SUCOVI 2026</title>
+<!-- Google Identity Services: reemplaza el login por usuario/contraseña propio.
+     Ver onGoogleLogin() más abajo — ahí se procesa el token que devuelve Google. -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -778,27 +781,12 @@
     <div class="login-title">Feria SUCOVI 2026</div>
     <div class="login-sub">Mapa de Stands · <span id="loginVersion"></span></div>
 
-    <div class="login-field">
-      <label class="login-label" for="loginUser">Usuario</label>
-      <div class="select-wrap">
-        <select id="loginUser" class="login-select">
-          <option value="">Cargando usuarios...</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="login-field">
-      <label class="login-label" for="loginPass">Contraseña</label>
-      <input id="loginPass" type="password" class="login-input" placeholder="Ingresá tu contraseña"
-        onkeydown="if(event.key==='Enter') doLogin()">
-    </div>
-
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">Ingresar</button>
-    <div id="bioBtnWrap" style="display:none">
-      <div class="login-bio-sep">o</div>
-      <button class="login-bio-btn" id="bioBtn" onclick="loginConBiometrico()">
-        <span style="font-size:20px">🪪</span> Entrar sin contraseña
-      </button>
+    <!-- Login con Google (reemplaza al viejo usuario/contraseña propio).
+         El botón se inicializa y renderiza por JS — ver initLogin() y
+         GOOGLE_CLIENT_ID en el <script> principal. -->
+    <div id="googleSignInContainer" style="display:flex; justify-content:center; margin-top:6px;"></div>
+    <div id="loginSpinner" style="display:none; text-align:center; margin-top:10px; font-size:13px; color:var(--text3)">
+      Verificando…
     </div>
     <div class="login-error" id="loginError"></div>
   </div>
@@ -1323,7 +1311,7 @@ let lastTap = 0;
 document.addEventListener('touchend', e => { const now=Date.now(); if(now-lastTap<300) e.preventDefault(); lastTap=now; }, {passive:false});
 
 // ── VERSIÓN DE LA APP ────────────────────────────────────────────────────────
-const APP_VERSION = 'v3.4';   // ← cambiá solo acá
+const APP_VERSION = 'v1.0';   // ← cambiá solo acá
 document.addEventListener('DOMContentLoaded', () => {
   const lv = document.getElementById('loginVersion');
   const hv = document.getElementById('headerVersion');
@@ -1332,6 +1320,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 const API_URL = "https://script.google.com/macros/s/AKfycbw1KPZO2gNyjKoj8GDdoG6QafGNt4EHbzugcqf66eNAt9hyLmw671EBtLZpRtmVX3VHNw/exec";
+// Client ID de Google Cloud Console (OAuth 2.0 → Aplicación web). NO es secreto,
+// es seguro que viaje en el front. Reemplazar por el tuyo antes de publicar.
+const GOOGLE_CLIENT_ID = "780269503263-tbneio51kfqn7uck6enfvfgeqbi3n4jp.apps.googleusercontent.com";
 
 let FULL_DATA = {}, currentFloor = 'pb';
 let FERIANTES_LIST = [];
@@ -2075,7 +2066,7 @@ async function asignarFeriante() {
     const mobParams = MOB_ITEMS.map(m => `${m.key}=${mobQty[m.key]||0}`).join('&');
     const adminParam = (CURRENT_PERFIL === 3 && vendedor) ? `&admin=${encodeURIComponent(CURRENT_USER)}` : '';
     const nuevoParam = selectedFerianteEsNuevo ? '&nuevo=SI' : '&nuevo=NO';
-    const urlAsignar = `${API_URL}?tipo=asignar&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&feriante=${encodeURIComponent(feriante)}&user=${encodeURIComponent(responsableAsign)}&${mobParams}${adminParam}${nuevoParam}`;
+    const urlAsignar = `${API_URL}?tipo=asignar&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&feriante=${encodeURIComponent(feriante)}&user=${encodeURIComponent(responsableAsign)}&session=${encodeURIComponent(CURRENT_SESSION_TOKEN)}&${mobParams}${adminParam}${nuevoParam}`;
     const resAsignar = await fetch(urlAsignar);
     const dataAsignar = await resAsignar.json();
     if (!dataAsignar.ok) {
@@ -2101,7 +2092,7 @@ async function asignarFeriante() {
 
     // Paso 2: registrar pago 1
     const vendedorParam = (CURRENT_PERFIL === 3 && vendedor) ? `&vendedor=${encodeURIComponent(vendedor)}` : '';
-    const urlPago = `${API_URL}?tipo=pago&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&num=1&monto=${monto}&medio=${encodeURIComponent(medio)}&user=${encodeURIComponent(CURRENT_USER)}${vendedorParam}`;
+    const urlPago = `${API_URL}?tipo=pago&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&num=1&monto=${monto}&medio=${encodeURIComponent(medio)}&user=${encodeURIComponent(CURRENT_USER)}&session=${encodeURIComponent(CURRENT_SESSION_TOKEN)}${vendedorParam}`;
     const resPago = await fetch(urlPago);
     const dataPago = await resPago.json();
     if (!dataPago.ok) {
@@ -2813,8 +2804,12 @@ function esCelular() {
 }
 
 function bioDisponible() {
-  return esCelular() && !!(window.PublicKeyCredential &&
-    typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function');
+  // Desactivado: con el login por Google (ver onGoogleLogin), el "entrar sin
+  // contraseña" queda cubierto por la sesión persistente / One Tap de Google
+  // mismo. Se deja el resto del código de biometría intacto por si se
+  // quisiera retomar más adelante — alcanza con volver esta función al
+  // chequeo de PublicKeyCredential de antes.
+  return false;
 }
 
 // Convierte ArrayBuffer → base64url y viceversa
@@ -2918,6 +2913,7 @@ function mostrarBtnBio() {
 // ── LOGIN ────────────────────────────────────────────────────────────────────
 let CURRENT_USER      = null;
 let CURRENT_PERFIL    = 1;   // 1=VENDEDOR, 2=VISUALIZADOR, 3=ADMIN
+let CURRENT_SESSION_TOKEN = null; // token firmado por el backend tras validar el login de Google — viaja en cada escritura
 let CURRENT_MES       = null;  // Clave del mes elegido (ej. "2026-03") — viaja en cada llamada a la API
 let CURRENT_MES_LABEL = '';    // Label para mostrar (ej. "Marzo 2026")
 let MESES_PENDIENTES  = null;  // {user, perfil} mientras se espera que el usuario elija el mes
@@ -2934,8 +2930,12 @@ function procesarLoginExitoso(user, perfil, meses) {
     if (errEl) errEl.textContent = 'No hay ninguna feria habilitada en este momento.';
     sessionStorage.removeItem('feriaUser');
     sessionStorage.removeItem('feriaPerfil');
-    const btn = document.getElementById('loginBtn');
-    if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
+    sessionStorage.removeItem('feriaSession');
+    CURRENT_SESSION_TOKEN = null;
+    const spinnerEl = document.getElementById('loginSpinner');
+    if (spinnerEl) spinnerEl.style.display = 'none';
+    const btnWrap = document.getElementById('googleSignInContainer');
+    if (btnWrap) btnWrap.style.display = 'flex';
     return;
   }
 
@@ -2976,21 +2976,24 @@ function confirmarMes() {
 }
 
 async function initLogin() {
-  // ¿Ya hay sesión activa (usuario Y mes)?
-  const savedUser = sessionStorage.getItem('feriaUser');
-  const savedMes  = sessionStorage.getItem('feriaMes');
-  if (savedUser && savedMes) {
+  // ¿Ya hay sesión activa (usuario, sessionToken firmado por el backend, Y mes)?
+  const savedUser  = sessionStorage.getItem('feriaUser');
+  const savedMes   = sessionStorage.getItem('feriaMes');
+  const savedToken = sessionStorage.getItem('feriaSession');
+  if (savedUser && savedMes && savedToken) {
     const savedPerfil = parseInt(sessionStorage.getItem('feriaPerfil') || '1', 10) || 1;
-    CURRENT_MES       = savedMes;
-    CURRENT_MES_LABEL = sessionStorage.getItem('feriaMesLabel') || '';
+    CURRENT_MES         = savedMes;
+    CURRENT_MES_LABEL   = sessionStorage.getItem('feriaMesLabel') || '';
+    CURRENT_SESSION_TOKEN = savedToken;
     activarSesion(savedUser, savedPerfil);
     return;
   }
-  // Caso raro: había sesión de usuario guardada pero no se llegó a elegir el
-  // mes (ej. se cerró el navegador justo entre el login y la selección).
-  // Volvemos a pedir los meses habilitados sin pedirle la contraseña de nuevo.
-  if (savedUser && !savedMes) {
+  // Caso raro: había sesión guardada pero no se llegó a elegir el mes (ej. se
+  // cerró el navegador justo entre el login y la selección de mes). El token
+  // sigue siendo válido, así que no hace falta volver a pasar por Google.
+  if (savedUser && savedToken && !savedMes) {
     const savedPerfil = parseInt(sessionStorage.getItem('feriaPerfil') || '1', 10) || 1;
+    CURRENT_SESSION_TOKEN = savedToken;
     try {
       const res  = await fetch(API_URL + '?tipo=meses');
       const data = await res.json();
@@ -2999,73 +3002,71 @@ async function initLogin() {
     } catch(err) {
       sessionStorage.removeItem('feriaUser');
       sessionStorage.removeItem('feriaPerfil');
+      sessionStorage.removeItem('feriaSession');
+      CURRENT_SESSION_TOKEN = null;
       // Si falla, seguimos de largo hacia la pantalla de login normal
     }
   }
-  // ¿Hay credencial biométrica guardada? → disparar directo, sin pedir contraseña
-  if (bioDisponible() && localStorage.getItem(BIO_STORAGE_KEY)) {
-    mostrarBtnBio();
-    loginConBiometrico(); // si el usuario cancela, queda el botón + el form abajo
-    return;
-  }
-  // Cargar lista de usuarios para el combo del login
+
+  // Precargamos VENDEDORES_LIST (usuarios perfil 1) para el combo del Admin
+  // al asignar una venta — ya no depende del combo de login, que no existe más.
   try {
     const res  = await fetch(API_URL + '?tipo=usuarios');
     const data = await res.json();
-    const sel  = document.getElementById('loginUser');
     if (data.ok && data.usuarios.length) {
-      // Poblar combo de login solo con los nombres
-      sel.innerHTML = '<option value="">— Elegí tu usuario —</option>' +
-        data.usuarios.map(u => `<option value="${u.nombre}">${u.nombre}</option>`).join('');
-      // Reutilizar estos mismos datos para VENDEDORES_LIST, así load()
-      // no vuelve a pedir "tipo=usuarios" un segundo después
-      VENDEDORES_LIST = data.usuarios
-        .filter(u => u.perfil === 1)
-        .map(u => u.nombre);
-    } else {
-      sel.innerHTML = '<option value="">Error al cargar usuarios</option>';
+      VENDEDORES_LIST = data.usuarios.filter(u => u.perfil === 1).map(u => u.nombre);
     }
-  } catch(err) {
-    document.getElementById('loginUser').innerHTML = '<option value="">Error de conexión</option>';
+  } catch(err) { /* no bloqueante: load() lo vuelve a pedir si hace falta */ }
+
+  // Inicializar y mostrar el botón de "Iniciar sesión con Google"
+  if (window.google && google.accounts && google.accounts.id) {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: onGoogleLogin,
+      auto_select: true // si ya hay una sesión de Google activa, entra sin tocar nada
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('googleSignInContainer'),
+      { type: 'standard', size: 'large', theme: 'outline', text: 'signin_with', shape: 'pill' }
+    );
+  } else {
+    document.getElementById('loginError').textContent =
+      'No se pudo cargar el login de Google. Revisá tu conexión y recargá la página.';
   }
-  mostrarBtnBio();
-  // Nota: si la sesión se restaura desde sessionStorage (arriba), este bloque
-  // nunca corre y VENDEDORES_LIST sigue vacío — en ese caso load() sí lo pide.
 }
 
-async function doLogin() {
-  const user = document.getElementById('loginUser').value.trim();
-  const pass = document.getElementById('loginPass').value.trim();
-  const errEl = document.getElementById('loginError');
-  const btn   = document.getElementById('loginBtn');
-
+// Callback que dispara Google Identity Services al completar el login.
+// response.credential es un JWT firmado por Google (no lo validamos acá,
+// solo lo reenviamos: la validación real la hace el backend en doLoginGoogle).
+async function onGoogleLogin(response) {
+  const errEl     = document.getElementById('loginError');
+  const spinnerEl = document.getElementById('loginSpinner');
   errEl.textContent = '';
-  if (!user) { errEl.textContent = 'Seleccioná un usuario'; return; }
-  if (!pass) { errEl.textContent = 'Ingresá tu contraseña'; return; }
+  spinnerEl.style.display = 'block';
+  document.getElementById('googleSignInContainer').style.display = 'none';
 
-  btn.disabled = true;
-  btn.textContent = 'Verificando...';
   try {
-    const res  = await fetch(`${API_URL}?tipo=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`);
+    const res  = await fetch(`${API_URL}?tipo=loginGoogle`, {
+      method: 'POST',
+      body: JSON.stringify({ token: response.credential })
+    });
     const data = await res.json();
     if (data.ok) {
-      const perfil = data.perfil || 1;
-      sessionStorage.setItem('feriaUser',   data.user);
-      sessionStorage.setItem('feriaPerfil', String(perfil));
-      // Ofrecer guardar biométrico si el dispositivo lo soporta y aún no está registrado
-      if (bioDisponible() && !localStorage.getItem(BIO_STORAGE_KEY)) {
-        registrarBiometrico(data.user, perfil); // no bloqueante
-      }
-      // El login ya trae la lista de meses habilitados en la misma respuesta
-      procesarLoginExitoso(data.user, perfil, data.meses);
+      CURRENT_SESSION_TOKEN = data.sessionToken;
+      sessionStorage.setItem('feriaUser',    data.user);
+      sessionStorage.setItem('feriaPerfil',  String(data.perfil));
+      sessionStorage.setItem('feriaSession', data.sessionToken);
+      procesarLoginExitoso(data.user, data.perfil, data.meses);
     } else {
-      errEl.textContent = data.error || 'Usuario o contraseña incorrectos';
+      errEl.textContent = data.error || 'No se pudo iniciar sesión.';
+      spinnerEl.style.display = 'none';
+      document.getElementById('googleSignInContainer').style.display = 'flex';
     }
   } catch(err) {
     errEl.textContent = 'Error de conexión. Intentá de nuevo.';
+    spinnerEl.style.display = 'none';
+    document.getElementById('googleSignInContainer').style.display = 'flex';
   }
-  btn.disabled = false;
-  btn.textContent = 'Ingresar';
 }
 
 function activarSesion(user, perfil) {
@@ -3115,6 +3116,13 @@ function cerrarSesion() {
   sessionStorage.removeItem('feriaPerfil');
   sessionStorage.removeItem('feriaMes');
   sessionStorage.removeItem('feriaMesLabel');
+  sessionStorage.removeItem('feriaSession');
+  CURRENT_SESSION_TOKEN = null;
+  // Sin esto, con auto_select:true, Google te vuelve a loguear solo apenas
+  // recargue la página — hay que decirle explícitamente que no lo haga.
+  if (window.google && google.accounts && google.accounts.id) {
+    google.accounts.id.disableAutoSelect();
+  }
   location.reload();
 }
 
@@ -3251,7 +3259,7 @@ async function cargarPago() {
   setBtnBusy(btn, 'Guardando...');
   try {
     const vendedorParam = vendedor ? `&vendedor=${encodeURIComponent(vendedor)}` : '';
-    const url  = `${API_URL}?tipo=pago&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&num=${pagoNumActual}&monto=${monto}&medio=${encodeURIComponent(medio)}&user=${encodeURIComponent(CURRENT_USER)}${vendedorParam}`;
+    const url  = `${API_URL}?tipo=pago&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&num=${pagoNumActual}&monto=${monto}&medio=${encodeURIComponent(medio)}&user=${encodeURIComponent(CURRENT_USER)}&session=${encodeURIComponent(CURRENT_SESSION_TOKEN)}${vendedorParam}`;
     const res  = await fetch(url);
     const data = await res.json();
     if (data.ok) {
@@ -3666,7 +3674,7 @@ async function venderMobAdicional() {
 
   try {
     const mobParams = MOB_ITEMS.map(m => `${m.key}=${mobAdicionalQty[m.key]||0}`).join('&');
-    const url = `${API_URL}?tipo=mobadic&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&monto=${total}&medio=${encodeURIComponent(medio)}&user=${encodeURIComponent(CURRENT_USER)}&mobdesc=${encodeURIComponent(mobDesc)}&${mobParams}`;
+    const url = `${API_URL}?tipo=mobadic&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&monto=${total}&medio=${encodeURIComponent(medio)}&user=${encodeURIComponent(CURRENT_USER)}&session=${encodeURIComponent(CURRENT_SESSION_TOKEN)}&mobdesc=${encodeURIComponent(mobDesc)}&${mobParams}`;
     const res  = await fetch(url);
     const data = await res.json();
     if (data.ok) {
@@ -3737,7 +3745,7 @@ async function guardarComentario() {
   setBtnBusy(btn, 'Guardando...');
 
   try {
-    const url  = `${API_URL}?tipo=comentario&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&user=${encodeURIComponent(CURRENT_USER)}&texto=${encodeURIComponent(texto)}`;
+    const url  = `${API_URL}?tipo=comentario&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&user=${encodeURIComponent(CURRENT_USER)}&session=${encodeURIComponent(CURRENT_SESSION_TOKEN)}&texto=${encodeURIComponent(texto)}`;
     const res  = await fetch(url);
     const data = await res.json();
     if (data.ok) {
@@ -3792,7 +3800,7 @@ async function confirmarContrato() {
 
   setBtnBusy(btn, 'Confirmando...');
   try {
-    const url  = `${API_URL}?tipo=contrato&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&user=${encodeURIComponent(CURRENT_USER)}`;
+    const url  = `${API_URL}?tipo=contrato&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&user=${encodeURIComponent(CURRENT_USER)}&session=${encodeURIComponent(CURRENT_SESSION_TOKEN)}`;
     const res  = await fetch(url);
     const data = await res.json();
 
@@ -3899,7 +3907,7 @@ async function darIngreso() {
 
   setBtnBusy(btn, 'Registrando...');
   try {
-    const url  = `${API_URL}?tipo=ingreso&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&user=${encodeURIComponent(CURRENT_USER)}`;
+    const url  = `${API_URL}?tipo=ingreso&mes=${encodeURIComponent(CURRENT_MES)}&stand=${encodeURIComponent(currentStandId)}&user=${encodeURIComponent(CURRENT_USER)}&session=${encodeURIComponent(CURRENT_SESSION_TOKEN)}`;
     const res  = await fetch(url);
     const data = await res.json();
 
