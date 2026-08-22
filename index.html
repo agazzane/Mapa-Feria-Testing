@@ -781,6 +781,19 @@
     <div class="login-title">Feria SUCOVI 2026</div>
     <div class="login-sub">Mapa de Stands · <span id="loginVersion"></span></div>
 
+    <!-- Atajo biométrico: aparece solo si este dispositivo ya tiene una
+         huella/Face ID asociada a un login de Google previo — ver
+         mostrarBtnBio() / loginConBiometrico() en el <script> principal. -->
+    <div id="bioBtnWrap" style="display:none; margin-top:6px;">
+      <button id="bioBtn" onclick="loginConBiometrico()"
+              style="width:100%; padding:12px; border-radius:999px; border:1px solid var(--border,#ddd);
+                     background:var(--bg2,#f5f5f5); font-size:15px; font-weight:600; cursor:pointer;
+                     display:flex; align-items:center; justify-content:center; gap:8px;">
+        <span style="font-size:20px">🪪</span> Entrar con huella / Face ID
+      </button>
+      <div style="text-align:center; margin:10px 0; font-size:12px; color:var(--text3)">o</div>
+    </div>
+
     <!-- Login con Google (reemplaza al viejo usuario/contraseña propio).
          El botón se inicializa y renderiza por JS — ver initLogin() y
          GOOGLE_CLIENT_ID en el <script> principal. -->
@@ -2796,20 +2809,31 @@ if (window.ResizeObserver) {
 // Pasada extra de seguridad: cuando TODO terminó de cargar (imágenes,
 // fuentes, todo), volvemos a centrar una vez más por las dudas.
 window.addEventListener('load', () => { aplicarZoom(); buildMinimap(); updateScrollCollapseMaxHeight(); });
-// ── BIOMÉTRICO (WebAuthn) ────────────────────────────────────────────────────
-const BIO_STORAGE_KEY = 'feriaBioCredential'; // { user, perfil, credentialId (base64) }
+// ── BIOMÉTRICO (WebAuthn) — atajo local, NO reemplaza a Google ─────────────
+// La huella/Face ID no valida nada contra Google ni contra el backend por sí
+// misma (WebAuthn genera una credencial atada a ESTE dominio, no a Google —
+// son sistemas separados por diseño, no hay forma estándar de que el sensor
+// del celu le pida un token a Google directamente).
+//
+// Lo que SÍ hace: guarda localmente el sessionToken que el backend ya emitió
+// (firmado con SESSION_SECRET) después de validar el login de Google, y usa
+// el sensor como "llave" para desbloquearlo — así no hay que tocar el botón
+// de Google en cada apertura de la app. La seguridad real sigue siendo la
+// firma del token, que el backend revisa en cada escritura (validarSesion en
+// script.gs); esto es solo comodidad del lado del cliente.
+//
+// Vence solo (hay que volver a pasar por Google una vez) cuando:
+//  - Pasan los SESSION_TTL_MS del backend (hoy: 15 días) — el token guardado
+//    deja de servir aunque el sensor lo desbloquee bien.
+//  - El usuario cierra sesión a mano (ver cerrarSesion más abajo).
+const BIO_STORAGE_KEY = 'feriaBioCredential'; // { user, perfil, sessionToken, credentialId (base64) }
 
 function esCelular() {
   return navigator.maxTouchPoints > 1 && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
 function bioDisponible() {
-  // Desactivado: con el login por Google (ver onGoogleLogin), el "entrar sin
-  // contraseña" queda cubierto por la sesión persistente / One Tap de Google
-  // mismo. Se deja el resto del código de biometría intacto por si se
-  // quisiera retomar más adelante — alcanza con volver esta función al
-  // chequeo de PublicKeyCredential de antes.
-  return false;
+  return !!(window.PublicKeyCredential && navigator.credentials);
 }
 
 // Convierte ArrayBuffer → base64url y viceversa
@@ -2826,8 +2850,36 @@ function b642ab(str) {
   return buf.buffer;
 }
 
-async function registrarBiometrico(user, perfil) {
+// Lee el "exp" (timestamp) del payload de un sessionToken SIN validar la
+// firma — eso lo hace siempre el backend en cada escritura. Acá solo nos
+// sirve para decidir, del lado del cliente, si conviene ofrecer el atajo de
+// huella o mandar directo al login de Google de nuevo.
+function sessionTokenExpirado(token) {
+  try {
+    const partes = String(token).split('.');
+    if (partes.length !== 2) return true;
+    const payload = atob(partes[0].replace(/-/g,'+').replace(/_/g,'/'));
+    const campos  = payload.split('|');
+    const exp     = parseInt(campos[2], 10) || 0;
+    return Date.now() > exp;
+  } catch(e) { return true; }
+}
+
+// Se llama después de un login con Google exitoso (ver onGoogleLogin). Si ya
+// había una huella registrada para este mismo usuario en este dispositivo,
+// solo refresca el sessionToken guardado (nuevos 15 días) SIN volver a pedir
+// el dedo/cara — el sensor ya se registró una vez y alcanza. Si es la
+// primera vez en este dispositivo, recién ahí pide registrarlo.
+async function registrarBiometrico(user, perfil, sessionToken) {
   if (!bioDisponible()) return;
+  const existing = JSON.parse(localStorage.getItem(BIO_STORAGE_KEY) || 'null');
+  if (existing && existing.user === user && existing.credentialId) {
+    existing.sessionToken = sessionToken;
+    existing.perfil = perfil;
+    localStorage.setItem(BIO_STORAGE_KEY, JSON.stringify(existing));
+    mostrarBtnBio();
+    return;
+  }
   try {
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     const userId    = new TextEncoder().encode(user);
@@ -2839,19 +2891,32 @@ async function registrarBiometrico(user, perfil) {
       authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
       timeout: 60000
     }});
-    // Guardamos el credentialId para verificar después
     localStorage.setItem(BIO_STORAGE_KEY, JSON.stringify({
-      user, perfil, credentialId: ab2b64(cred.rawId)
+      user, perfil, sessionToken, credentialId: ab2b64(cred.rawId)
     }));
     mostrarBtnBio();
   } catch(e) {
-    // Si el usuario cancela o el dispositivo no lo soporta, no pasa nada
+    // Si cancela el registro o el dispositivo no lo soporta, no pasa nada:
+    // sigue entrando con Google normalmente cada vez.
   }
 }
 
+// Toca el sensor → si coincide, reusa el sessionToken guardado (sin volver a
+// pasar por Google) y entra directo.
 async function loginConBiometrico() {
   const saved = JSON.parse(localStorage.getItem(BIO_STORAGE_KEY) || 'null');
   if (!saved) return;
+
+  // El token ya venció (pasaron los 15 días) → no tiene sentido pedir la
+  // huella para nada que ya no sirve; hace falta un login de Google entero.
+  if (sessionTokenExpirado(saved.sessionToken)) {
+    localStorage.removeItem(BIO_STORAGE_KEY);
+    ocultarBtnBio();
+    document.getElementById('loginError').textContent =
+      'Tu sesión guardada venció. Iniciá sesión con Google de nuevo.';
+    return;
+  }
+
   const errEl = document.getElementById('loginError');
   const btn   = document.getElementById('bioBtn');
   errEl.textContent = '';
@@ -2865,11 +2930,13 @@ async function loginConBiometrico() {
       userVerification: 'required',
       timeout: 60000
     }});
-    // Verificación local exitosa → guardamos la sesión, pero como este flujo
-    // no pasa por doLogin() todavía no sabemos qué meses están habilitados;
-    // los pedimos aparte antes de activar la sesión.
-    sessionStorage.setItem('feriaUser',   saved.user);
-    sessionStorage.setItem('feriaPerfil', String(saved.perfil));
+    // Verificación local exitosa → reusamos el sessionToken que ya había
+    // emitido el backend tras el login de Google (no hace falta volver a
+    // pedirle nada a Google ahora).
+    CURRENT_SESSION_TOKEN = saved.sessionToken;
+    sessionStorage.setItem('feriaUser',    saved.user);
+    sessionStorage.setItem('feriaPerfil',  String(saved.perfil));
+    sessionStorage.setItem('feriaSession', saved.sessionToken);
     try {
       const resM  = await fetch(`${API_URL}?tipo=meses`);
       const dataM = await resM.json();
@@ -2877,37 +2944,32 @@ async function loginConBiometrico() {
     } catch(errM) {
       errEl.textContent = 'Error de conexión al cargar las ferias disponibles.';
       btn.disabled = false;
-      btn.innerHTML = '<span style="font-size:20px">🪪</span> Entrar sin contraseña';
+      btn.innerHTML = '<span style="font-size:20px">🪪</span> Entrar con huella / Face ID';
     }
   } catch(e) {
-    // Si cancela o falla, mostrar el formulario normal para entrar con contraseña
-    errEl.textContent = 'Verificación cancelada. Ingresá con tu contraseña.';
+    // Canceló o falló la verificación local → se queda en la pantalla de
+    // login con el botón de Google disponible, sin tocar el backend.
+    errEl.textContent = 'Verificación cancelada. Iniciá sesión con Google.';
     btn.disabled = false;
-    btn.innerHTML = '<span style="font-size:20px">🪪</span> Entrar sin contraseña';
-    // Cargar el combo de usuarios si todavía no se cargó
-    const sel = document.getElementById('loginUser');
-    if (sel.options.length <= 1 && sel.options[0]?.value === '') {
-      try {
-        const res  = await fetch(API_URL + '?tipo=usuarios');
-        const data = await res.json();
-        if (data.ok && data.usuarios.length) {
-          sel.innerHTML = '<option value="">— Elegí tu usuario —</option>' +
-            data.usuarios.map(u => `<option value="${u.nombre}">${u.nombre}</option>`).join('');
-          VENDEDORES_LIST = data.usuarios
-            .filter(u => u.perfil === 1)
-            .map(u => u.nombre);
-        }
-      } catch(err) {
-        sel.innerHTML = '<option value="">Error de conexión</option>';
-      }
-    }
+    btn.innerHTML = '<span style="font-size:20px">🪪</span> Entrar con huella / Face ID';
   }
 }
 
 function mostrarBtnBio() {
   if (!bioDisponible()) return;
-  const saved = localStorage.getItem(BIO_STORAGE_KEY);
-  if (saved) document.getElementById('bioBtnWrap').style.display = 'block';
+  const saved = JSON.parse(localStorage.getItem(BIO_STORAGE_KEY) || 'null');
+  if (!saved) return;
+  if (sessionTokenExpirado(saved.sessionToken)) {
+    localStorage.removeItem(BIO_STORAGE_KEY);
+    return;
+  }
+  const wrap = document.getElementById('bioBtnWrap');
+  if (wrap) wrap.style.display = 'block';
+}
+
+function ocultarBtnBio() {
+  const wrap = document.getElementById('bioBtnWrap');
+  if (wrap) wrap.style.display = 'none';
 }
 
 // ── LOGIN ────────────────────────────────────────────────────────────────────
@@ -2976,6 +3038,19 @@ function confirmarMes() {
 }
 
 async function initLogin() {
+  // Precargamos VENDEDORES_LIST (usuarios perfil 1) para el combo del Admin
+  // al asignar una venta. Se hace ACÁ, antes de cualquier "return" de sesión
+  // guardada, para que se refresque siempre al abrir la página — si no,
+  // quien entra con una sesión ya activa se quedaba con la lista vieja
+  // (ej. un feriante recién dado de alta no aparecía hasta cerrar sesión).
+  try {
+    const res  = await fetch(API_URL + '?tipo=usuarios');
+    const data = await res.json();
+    if (data.ok && data.usuarios.length) {
+      VENDEDORES_LIST = data.usuarios.filter(u => u.perfil === 1).map(u => u.nombre);
+    }
+  } catch(err) { /* no bloqueante: load() lo vuelve a pedir si hace falta */ }
+
   // ¿Ya hay sesión activa (usuario, sessionToken firmado por el backend, Y mes)?
   const savedUser  = sessionStorage.getItem('feriaUser');
   const savedMes   = sessionStorage.getItem('feriaMes');
@@ -3008,15 +3083,9 @@ async function initLogin() {
     }
   }
 
-  // Precargamos VENDEDORES_LIST (usuarios perfil 1) para el combo del Admin
-  // al asignar una venta — ya no depende del combo de login, que no existe más.
-  try {
-    const res  = await fetch(API_URL + '?tipo=usuarios');
-    const data = await res.json();
-    if (data.ok && data.usuarios.length) {
-      VENDEDORES_LIST = data.usuarios.filter(u => u.perfil === 1).map(u => u.nombre);
-    }
-  } catch(err) { /* no bloqueante: load() lo vuelve a pedir si hace falta */ }
+  // Si este dispositivo ya tiene una huella/Face ID asociada a un login de
+  // Google anterior (y ese sessionToken sigue vigente), mostramos el atajo.
+  mostrarBtnBio();
 
   // Inicializar y mostrar el botón de "Iniciar sesión con Google"
   if (window.google && google.accounts && google.accounts.id) {
@@ -3056,6 +3125,10 @@ async function onGoogleLogin(response) {
       sessionStorage.setItem('feriaUser',    data.user);
       sessionStorage.setItem('feriaPerfil',  String(data.perfil));
       sessionStorage.setItem('feriaSession', data.sessionToken);
+      // No bloqueante: si el dispositivo soporta biométrico, registra (o
+      // refresca) la huella para no tener que volver a tocar el botón de
+      // Google la próxima vez, hasta que este token venza o cierre sesión.
+      registrarBiometrico(data.user, data.perfil, data.sessionToken);
       procesarLoginExitoso(data.user, data.perfil, data.meses);
     } else {
       errEl.textContent = data.error || 'No se pudo iniciar sesión.';
@@ -3118,6 +3191,10 @@ function cerrarSesion() {
   sessionStorage.removeItem('feriaMesLabel');
   sessionStorage.removeItem('feriaSession');
   CURRENT_SESSION_TOKEN = null;
+  // Cierre manual → se pidió explícitamente que esto también invalide el
+  // atajo biométrico (no solo la sesión activa), así que la próxima vez hay
+  // que pasar por Google de nuevo y volver a registrar la huella.
+  localStorage.removeItem(BIO_STORAGE_KEY);
   // Sin esto, con auto_select:true, Google te vuelve a loguear solo apenas
   // recargue la página — hay que decirle explícitamente que no lo haga.
   if (window.google && google.accounts && google.accounts.id) {
